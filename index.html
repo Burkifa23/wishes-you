@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas & New Year 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: radial-gradient(circle at center, #1a472a 0%, #0d2818 100%); 
+        }
+        
+        #canvas-container { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 0; 
+        }
+        
+        .year-digit { 
+            display: inline-block; 
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        .pulse { 
+            animation: pulse-scale 1.5s infinite; 
+        }
+        
+        @keyframes pulse-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(80px);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(-80px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .slide-down {
+            animation: slideDown 0.6s ease-in forwards;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.6s ease-out forwards;
+        }
+        
+        .text-glow { 
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3); 
+        }
+        
+        .button-glow {
+            border-color: rgba(255, 215, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .button-glow:hover {
+            border-color: rgba(255, 215, 0, 1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.1);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .lottie-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="text-white font-sans">
+    <div id="canvas-container"></div>
+
+    <main class="relative z-10 min-h-screen flex flex-col items-center justify-center pointer-events-none">
+        <h1 class="text-5xl md:text-6xl font-bold tracking-widest text-[#ff6b6b] mb-8 opacity-0" id="message1">Merry Christmas</h1>
+        
+        <div id="year-container" class="text-8xl md:text-9xl font-bold tracking-tighter text-[#00ff88] text-glow flex">
+            <span>2</span><span>0</span><span>2</span><span id="last-digit" class="year-digit">5</span>
+        </div>
+        
+        <h2 id="message2" class="mt-6 text-4xl md:text-5xl font-serif italic text-[#ffd700] opacity-0">Happy New Year!</h2>
+    </main>
+
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-20 pointer-events-auto">
+        <button onclick="changeZoom(-1)" class="px-6 py-3 rounded-full border-2 button-glow bg-black/40 backdrop-blur-md hover:bg-white/5 transition-all flex items-center gap-2 text-sm uppercase tracking-wider font-semibold">
+            <div class="lottie-icon" id="zoomInIcon"></div>
+            Zoom In
+        </button>
+        <button onclick="changeZoom(1)" class="px-6 py-3 rounded-full border-2 button-glow bg-black/40 backdrop-blur-md hover:bg-white/5 transition-all flex items-center gap-2 text-sm uppercase tracking-wider font-semibold">
+            <div class="lottie-icon" id="zoomOutIcon"></div>
+            Zoom Out
+        </button>
+    </div>
+
+    <script>
+        // Load Lottie animations
+        lottie.loadAnimation({
+            container: document.getElementById('zoomInIcon'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'https://lottie.host/1c5c4d9c-6ff7-4c9a-96a5-8b3f7c5d8e9a/4JqZvZ5V9l.json'
+        });
+
+        lottie.loadAnimation({
+            container: document.getElementById('zoomOutIcon'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'https://lottie.host/7f8c5e6d-9a1b-4c2d-8e9f-0a1b2c3d4e5f/KsJq5X8Pqr.json'
+        });
+
+        // Three.js Scene Setup
+        let scene, camera, renderer, treeGroup, star, snowParticles;
+        let targetZoom = 7;
+        const snowCount = 1200;
+
+        function initScene() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = targetZoom;
+            camera.position.y = 1.5;
+
+            try {
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            } catch (e) {
+                console.error("WebGL not supported", e);
+                return;
+            }
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lighting - Enhanced for festive feel
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const redLight = new THREE.PointLight(0xff6b6b, 1.5, 20);
+            redLight.position.set(3, 3, 3);
+            scene.add(redLight);
+            
+            const goldLight = new THREE.PointLight(0xffd700, 1.5, 20);
+            goldLight.position.set(-3, 2, 3);
+            scene.add(goldLight);
+            
+            const greenLight = new THREE.PointLight(0x00ff88, 0.8, 15);
+            greenLight.position.set(0, 4, 2);
+            scene.add(greenLight);
+
+            // Tree Group
+            treeGroup = new THREE.Group();
+            scene.add(treeGroup);
+
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.35, 1.2, 8),
+                new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.8 })
+            );
+            trunk.position.y = -1.2;
+            treeGroup.add(trunk);
+
+            // Tree foliage - Layered cones
+            const foliageMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a5f3f,
+                roughness: 0.6,
+                metalness: 0.1
+            });
+
+            const layers = [
+                { radius: 1.8, height: 2, y: -0.2 },
+                { radius: 1.4, height: 1.8, y: 0.9 },
+                { radius: 1, height: 1.5, y: 1.8 }
+            ];
+
+            layers.forEach(layer => {
+                const cone = new THREE.Mesh(
+                    new THREE.ConeGeometry(layer.radius, layer.height, 16),
+                    foliageMaterial
+                );
+                cone.position.y = layer.y;
+                cone.castShadow = true;
+                treeGroup.add(cone);
+            });
+
+            // Ornaments - Rich festive colors
+            const ornamentPositions = [
+                { x: 1.2, y: -0.2, z: 0.6, color: 0xff0000 },
+                { x: -1, y: 0.2, z: 0.4, color: 0xffd700 },
+                { x: 0.3, y: 0.8, z: 0.9, color: 0x00ff00 },
+                { x: -0.9, y: 1.2, z: -0.5, color: 0xff6b6b },
+                { x: 1.3, y: 1, z: -0.3, color: 0xffd700 },
+                { x: -0.5, y: 1.8, z: 0.5, color: 0xff0000 },
+                { x: 0.7, y: 2.1, z: 0.7, color: 0x00ff00 }
+            ];
+
+            ornamentPositions.forEach(pos => {
+                const ornament = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.18, 16, 16),
+                    new THREE.MeshStandardMaterial({
+                        color: pos.color,
+                        metalness: 0.9,
+                        roughness: 0.1,
+                        envMapIntensity: 1
+                    })
+                );
+                ornament.position.set(pos.x, pos.y, pos.z);
+                ornament.castShadow = true;
+                treeGroup.add(ornament);
+            });
+
+            // Star on top
+            star = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.25, 0),
+                new THREE.MeshStandardMaterial({
+                    color: 0xffff00,
+                    metalness: 1,
+                    roughness: 0.2,
+                    emissive: 0xffff00,
+                    emissiveIntensity: 0.5
+                })
+            );
+            star.position.y = 2.8;
+            star.castShadow = true;
+            treeGroup.add(star);
+
+            // Snow particles
+            const snowPositions = new Float32Array(snowCount * 3);
+            for (let i = 0; i < snowCount; i++) {
+                snowPositions[i * 3] = (Math.random() - 0.5) * 25;
+                snowPositions[i * 3 + 1] = Math.random() * 12;
+                snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 15;
+            }
+
+            const snowGeom = new THREE.BufferGeometry();
+            snowGeom.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
+            snowParticles = new THREE.Points(
+                snowGeom,
+                new THREE.PointsMaterial({
+                    color: 0xffffff,
+                    size: 0.08,
+                    transparent: true,
+                    opacity: 0.9,
+                    sizeAttenuation: true
+                })
+            );
+            scene.add(snowParticles);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Tree rotation
+            treeGroup.rotation.y += 0.004;
+
+            // Star rotation and pulse
+            star.rotation.x += 0.03;
+            star.rotation.y += 0.04;
+            const starScale = 1 + Math.sin(Date.now() * 0.003) * 0.15;
+            star.scale.set(starScale, starScale, starScale);
+
+            // Ornament rotation
+            treeGroup.children.forEach(child => {
+                if (child.geometry instanceof THREE.SphereGeometry) {
+                    child.rotation.x += 0.015;
+                    child.rotation.y += 0.02;
+                }
+            });
+
+            // Snow animation
+            const pos = snowParticles.geometry.attributes.position.array;
+            for (let i = 0; i < snowCount; i++) {
+                pos[i * 3 + 1] -= 0.015;
+                pos[i * 3] += Math.sin(Date.now() * 0.0001 + i) * 0.01;
+                
+                if (pos[i * 3 + 1] < -5) {
+                    pos[i * 3 + 1] = 12;
+                }
+            }
+            snowParticles.geometry.attributes.position.needsUpdate = true;
+
+            // Smooth camera zoom
+            camera.position.z += (targetZoom - camera.position.z) * 0.05;
+            renderer.render(scene, camera);
+        }
+
+        function changeZoom(dir) {
+            targetZoom = Math.max(3, Math.min(14, targetZoom + dir));
+        }
+
+        // Year Animation - Digit 5 to 6
+        setTimeout(() => {
+            const lastDigit = document.getElementById('last-digit');
+            const yearContainer = document.getElementById('year-container');
+
+            // Fade in messages
+            gsap.to("#message1, #message2", {
+                opacity: 1,
+                duration: 1,
+                stagger: 0.4,
+                ease: "power2.out"
+            });
+
+            // Animate digit change
+            gsap.to(lastDigit, {
+                duration: 0.6,
+                onStart: () => lastDigit.classList.add('slide-down'),
+                onComplete: () => {
+                    lastDigit.classList.remove('slide-down');
+                    lastDigit.textContent = '6';
+                    lastDigit.classList.add('slide-up');
+
+                    // Add pulse after animation
+                    setTimeout(() => {
+                        yearContainer.classList.add('pulse');
+                    }, 600);
+                }
+            });
+        }, 2000);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        initScene();
+    </script>
+</body>
+</html>
