@@ -88,10 +88,22 @@
             height: 24px;
             display: inline-block;
         }
+
+        #fireworks-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
     </style>
 </head>
 <body class="text-white font-sans">
     <div id="canvas-container"></div>
+    <canvas id="fireworks-canvas"></canvas>
 
     <main class="relative z-10 min-h-screen flex flex-col items-center justify-center pointer-events-none">
         <h1 class="text-5xl md:text-6xl font-bold tracking-widest text-[#ff6b6b] mb-8 opacity-0" id="message1">Merry Christmas</h1>
@@ -350,6 +362,219 @@
         });
 
         initScene();
+
+        // Fireworks System
+        const fireworksCanvas = document.getElementById('fireworks-canvas');
+        const ctx = fireworksCanvas.getContext('2d');
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+
+        let particles = [];
+
+        // Firework patterns
+        const patterns = [
+            // 1. Classic Burst
+            { name: 'burst', count: 80, speed: 8, spread: Math.PI * 2, colors: ['#ff0000', '#ffd700', '#00ff88'] },
+            // 2. Ring
+            { name: 'ring', count: 100, speed: 6, spread: Math.PI * 2, colors: ['#ff6b6b', '#ffd700', '#ff00ff'] },
+            // 3. Spiral
+            { name: 'spiral', count: 60, speed: 7, spread: Math.PI * 2, colors: ['#00ff88', '#00ffff', '#ff0088'] },
+            // 4. Double Ring
+            { name: 'doubleRing', count: 120, speed: 5, spread: Math.PI * 2, colors: ['#ffd700', '#ff0000', '#00ff00'] },
+            // 5. Fountain
+            { name: 'fountain', count: 50, speed: 6, spread: Math.PI * 0.5, colors: ['#ff00ff', '#00ffff', '#ffff00'] },
+            // 6. Wave
+            { name: 'wave', count: 70, speed: 5, spread: Math.PI * 2, colors: ['#ff6b6b', '#00ff88', '#ffd700'] },
+            // 7. Glitter
+            { name: 'glitter', count: 150, speed: 3, spread: Math.PI * 2, colors: ['#ffffff', '#ffd700', '#ff00ff'] },
+            // 8. Confetti
+            { name: 'confetti', count: 100, speed: 4, spread: Math.PI * 2, colors: ['#ff0000', '#00ff00', '#0000ff', '#ffd700', '#ff00ff'] },
+            // 9. Palm Tree
+            { name: 'palm', count: 90, speed: 4, spread: Math.PI * 2, colors: ['#00ff88', '#ff6b6b', '#ffd700'] },
+            // 10. Willow
+            { name: 'willow', count: 110, speed: 2, spread: Math.PI * 2, colors: ['#00ffff', '#00ff88', '#ffff00'] },
+            // 11. Bamboo
+            { name: 'bamboo', count: 85, speed: 5, spread: Math.PI * 0.8, colors: ['#ff0000', '#ffd700', '#00ff88'] },
+            // 12. Ring Tail
+            { name: 'ringTail', count: 130, speed: 6, spread: Math.PI * 2, colors: ['#ff00ff', '#00ffff', '#ffd700'] }
+        ];
+
+        class Particle {
+            constructor(x, y, pattern) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.life = 1;
+                this.maxLife = Math.random() * 60 + 40;
+                this.gravity = 0.15;
+                this.color = pattern.colors[Math.floor(Math.random() * pattern.colors.length)];
+                this.size = Math.random() * 2 + 1;
+                this.decay = Math.random() * 0.01 + 0.01;
+                this.pattern = pattern.name;
+            }
+
+            update() {
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function createFireworks(x, y, pattern) {
+            const angle = Math.random() * Math.PI * 2;
+            const angleStep = pattern.spread / pattern.count;
+
+            for (let i = 0; i < pattern.count; i++) {
+                const particle = new Particle(x, y, pattern);
+                let currentAngle = angle + angleStep * i;
+
+                switch (pattern.name) {
+                    case 'burst':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * pattern.speed;
+                        particle.vy = Math.sin(currentAngle) * pattern.speed;
+                        break;
+
+                    case 'ring':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * (pattern.speed + 2);
+                        particle.vy = Math.sin(currentAngle) * (pattern.speed + 2);
+                        break;
+
+                    case 'spiral':
+                        currentAngle = (i / pattern.count) * Math.PI * 4;
+                        const spiralRadius = (i / pattern.count) * pattern.speed * 2;
+                        particle.vx = Math.cos(currentAngle) * spiralRadius;
+                        particle.vy = Math.sin(currentAngle) * spiralRadius;
+                        break;
+
+                    case 'doubleRing':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        const ringType = i % 2 === 0 ? pattern.speed + 1 : pattern.speed - 1;
+                        particle.vx = Math.cos(currentAngle) * ringType;
+                        particle.vy = Math.sin(currentAngle) * ringType;
+                        break;
+
+                    case 'fountain':
+                        currentAngle = (i / pattern.count) * Math.PI;
+                        particle.vx = Math.cos(currentAngle) * pattern.speed;
+                        particle.vy = -Math.sin(currentAngle) * pattern.speed;
+                        break;
+
+                    case 'wave':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        const waveOffset = Math.sin(i / 10) * 0.5;
+                        particle.vx = Math.cos(currentAngle) * (pattern.speed + waveOffset);
+                        particle.vy = Math.sin(currentAngle) * (pattern.speed + waveOffset);
+                        break;
+
+                    case 'glitter':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * (Math.random() * pattern.speed);
+                        particle.vy = Math.sin(currentAngle) * (Math.random() * pattern.speed);
+                        particle.size = Math.random() * 1.5 + 0.5;
+                        break;
+
+                    case 'confetti':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * (Math.random() * pattern.speed + 2);
+                        particle.vy = Math.sin(currentAngle) * (Math.random() * pattern.speed + 1) - 3;
+                        particle.size = Math.random() * 3 + 2;
+                        break;
+
+                    case 'palm':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        const palmSpeed = pattern.speed + Math.random() * 2;
+                        particle.vx = Math.cos(currentAngle) * palmSpeed;
+                        particle.vy = Math.sin(currentAngle) * palmSpeed;
+                        particle.gravity = 0.08;
+                        break;
+
+                    case 'willow':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * pattern.speed;
+                        particle.vy = Math.sin(currentAngle) * pattern.speed;
+                        particle.gravity = 0.05;
+                        particle.decay = Math.random() * 0.003 + 0.002;
+                        break;
+
+                    case 'bamboo':
+                        currentAngle = (i / pattern.count) * Math.PI;
+                        particle.vx = Math.cos(currentAngle) * pattern.speed;
+                        particle.vy = -Math.sin(currentAngle) * pattern.speed;
+                        particle.gravity = 0.2;
+                        break;
+
+                    case 'ringTail':
+                        currentAngle = (i / pattern.count) * Math.PI * 2;
+                        particle.vx = Math.cos(currentAngle) * (pattern.speed + Math.random() * 1);
+                        particle.vy = Math.sin(currentAngle) * (pattern.speed + Math.random() * 1);
+                        particle.gravity = 0.1;
+                        break;
+
+                    default:
+                        particle.vx = Math.cos(currentAngle) * pattern.speed;
+                        particle.vy = Math.sin(currentAngle) * pattern.speed;
+                }
+
+                particles.push(particle);
+            }
+        }
+
+        function animateFireworks() {
+            ctx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(ctx);
+
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            if (particles.length > 0) {
+                requestAnimationFrame(animateFireworks);
+            }
+        }
+
+        // Click/Tap to create fireworks
+        fireworksCanvas.style.pointerEvents = 'auto';
+        fireworksCanvas.addEventListener('click', (e) => {
+            const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+            createFireworks(e.clientX, e.clientY, pattern);
+            animateFireworks();
+        });
+
+        // Auto fireworks every 5-8 seconds
+        function autoFireworks() {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight * 0.6;
+            const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+            createFireworks(x, y, pattern);
+            animateFireworks();
+
+            setTimeout(autoFireworks, Math.random() * 3000 + 5000);
+        }
+
+        autoFireworks();
+
+        // Handle canvas resize
+        window.addEventListener('resize', () => {
+            fireworksCanvas.width = window.innerWidth;
+            fireworksCanvas.height = window.innerHeight;
+        });
     </script>
 </body>
 </html>
