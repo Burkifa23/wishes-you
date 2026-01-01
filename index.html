@@ -363,6 +363,21 @@
 
         initScene();
 
+        // Audio Setup
+        const singleFireworkSound = new Audio('firework.wav');
+        const multipleFireworkSound = new Audio('multiple firework.wav');
+
+        // Preload audio
+        singleFireworkSound.preload = 'auto';
+        multipleFireworkSound.preload = 'auto';
+
+        // Function to play sound with volume control
+        function playFireworkSound(isMultiple = false) {
+            const sound = isMultiple ? multipleFireworkSound.cloneNode() : singleFireworkSound.cloneNode();
+            sound.volume = 0.5; // Adjust volume (0.0 to 1.0)
+            sound.play().catch(e => console.log('Audio play failed:', e));
+        }
+
         // Fireworks System
         const fireworksCanvas = document.getElementById('fireworks-canvas');
         const ctx = fireworksCanvas.getContext('2d');
@@ -370,6 +385,8 @@
         fireworksCanvas.height = window.innerHeight;
 
         let particles = [];
+        let consecutiveFireworks = 0;
+        let lastFireworkTime = 0;
 
         // Firework patterns
         const patterns = [
@@ -431,9 +448,30 @@
             }
         }
 
-        function createFireworks(x, y, pattern) {
+        function createFireworks(x, y, pattern, playSound = true) {
             const angle = Math.random() * Math.PI * 2;
             const angleStep = pattern.spread / pattern.count;
+
+            // Play sound when firework is created
+            if (playSound) {
+                const currentTime = Date.now();
+                const timeSinceLastFirework = currentTime - lastFireworkTime;
+
+                // If multiple fireworks within 500ms, use multiple sound
+                if (timeSinceLastFirework < 500) {
+                    consecutiveFireworks++;
+                    if (consecutiveFireworks >= 2) {
+                        playFireworkSound(true); // Multiple fireworks sound
+                    } else {
+                        playFireworkSound(false); // Single firework sound
+                    }
+                } else {
+                    consecutiveFireworks = 0;
+                    playFireworkSound(false); // Single firework sound
+                }
+
+                lastFireworkTime = currentTime;
+            }
 
             for (let i = 0; i < pattern.count; i++) {
                 const particle = new Particle(x, y, pattern);
